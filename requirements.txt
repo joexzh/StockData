@@ -1,0 +1,4 @@
+baostock
+pandas
+jupyter
+mysql-connector-python
