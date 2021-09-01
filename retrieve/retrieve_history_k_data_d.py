@@ -41,8 +41,8 @@ def fetch():
 
         result = pd.concat(kds)
 
-        if bcs.shape[0] > result.shape[0]:
-            raise ValueError(f'rows:{result.shape[0]} should more than stocks:{bcs.shape[0]}.')
+        # if bcs.shape[0] > result.shape[0]:
+        #     raise ValueError(f'rows:{result.shape[0]} should more than stocks:{bcs.shape[0]}.')
 
         result.to_csv(r"D:\history_A_stock_k_data.csv", index=False)
         logging.info(f'total rows: {result.shape[0]}')
