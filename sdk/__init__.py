@@ -1,4 +1,4 @@
-from .log_in_out import login, logout
+from .log_in_out import login, logout, bs_login_ctx
 from .query_balance_data import query_balance_data
 from .query_cash_flow_data import query_cash_flow_data
 from .query_dupont_data import query_dupont_data

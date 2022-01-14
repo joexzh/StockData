@@ -2,3 +2,5 @@ baostock
 pandas
 jupyter
 mysql-connector-python
+awaits
+pyyaml

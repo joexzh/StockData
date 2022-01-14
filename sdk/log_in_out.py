@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import baostock as bs
 
 
@@ -12,3 +13,12 @@ def login():
 def logout():
     # 登出系统
     bs.logout()
+
+
+@contextmanager
+def bs_login_ctx():
+    try:
+        login()
+        yield None
+    finally:
+        logout()
