@@ -4,3 +4,4 @@ jupyter
 mysql-connector-python
 awaits
 pyyaml
+matplotlib

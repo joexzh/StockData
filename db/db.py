@@ -81,6 +81,9 @@ class DbContext:
     def commit(self):
         self.conn.commit()
 
+    def rollback(self):
+        self.conn.rollback()
+
     def fetchall(self, sql, params):
         """
         fetch all query results
@@ -170,9 +173,8 @@ class DbContext:
 
 @contextmanager
 def create_ctx():
-    ctx = None
+    ctx = DbContext(**mysql_config)
     try:
-        ctx = DbContext(**mysql_config)
         yield ctx
     finally:
         if ctx:

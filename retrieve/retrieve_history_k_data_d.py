@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta, date
 import asyncio
 from awaits.awaitable import awaitable
 
@@ -15,9 +15,9 @@ _codeSplit = 500
 class Fetcher:
     def __init__(self) -> None:
         now = datetime.now()
-        start_date = (config.get_k_day_last_updated() + pd.DateOffset(days=1))
+        start_date: date = config.get_k_day_last_updated() + timedelta(days=1)
         if start_date > now.date():
-            raise ValueError(f'起止日期 {start_date.date()} 不能大于今天 {now.date()}')
+            raise ValueError(f'起止日期 {start_date} 不能大于今天 {now.date()}')
         if start_date == now.date() and now.hour < 17:
             raise ValueError(f'当天的数据尚未更新')
         self.start_date_str = start_date.strftime('%Y-%m-%d')
