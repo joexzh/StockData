@@ -1,0 +1,11 @@
+name: stock
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - jupyter
+  - pyyaml
+  - baostock
+  - mysql-connector-python
+  - pandas
+prefix: C:\Users\Administrator\.conda\envs\stock
