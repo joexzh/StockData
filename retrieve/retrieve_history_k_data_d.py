@@ -1,7 +1,5 @@
 import logging
 from datetime import datetime, timedelta, date
-import asyncio
-from awaits.awaitable import awaitable
 
 import db
 import sdk
@@ -9,7 +7,6 @@ import pandas as pd
 import config
 
 _table = 'history_k_data_d'
-_codeSplit = 500
 
 
 class Fetcher:
@@ -23,8 +20,7 @@ class Fetcher:
         self.start_date_str = start_date.strftime('%Y-%m-%d')
         logging.info(f'start date: {self.start_date_str}')
 
-    @awaitable
-    def fetch_kline_data(self, codes: pd.Series) -> [pd.DataFrame]:
+    def fetch_kline_data(self, codes: pd.Series) -> list[pd.DataFrame]:
         kds = []
         for code in codes:
             kd = sdk.query_history_k_data_plus(code,
@@ -39,14 +35,7 @@ class Fetcher:
         logging.info(f'done fetch from {codes.iloc[0]} to {codes.iloc[-1]}')
         return kds
 
-    async def split_fetch(self, code_series: pd.Series) -> list[list[pd.DataFrame]]:
-        tasks = []
-        for i in range(0, code_series.shape[0], _codeSplit):
-            codes = code_series.iloc[i:i + _codeSplit]
-            tasks.append(self.fetch_kline_data(codes))
-        return await asyncio.gather(*tasks)
-
-    async def fetch(self) -> pd.DataFrame:
+    def fetch(self) -> pd.DataFrame:
         with sdk.bs_login_ctx():
             logging.info(f'start to retrieve {_table}')
             bcs = sdk.query_stock_basic()
@@ -54,7 +43,7 @@ class Fetcher:
             logging.info(f'total stocks: {bcs.shape[0]}')
 
             all_kds = []
-            fetch_rets = await self.split_fetch(bcs["code"])
+            fetch_rets = self.fetch_kline_data(bcs["code"])
             for kds in fetch_rets:
                 all_kds.extend(kds)
             result = pd.concat(all_kds)
@@ -127,9 +116,9 @@ def save(result: pd.DataFrame):
     return total_row_count
 
 
-async def fetch_and_save_k_day():
+def fetch_and_save_k_day():
     f = Fetcher()
-    result = await f.fetch()
+    result = f.fetch()
     logging.info(f'start to save to table `{_table}`, total rows: {result.shape[0]}')
     rowcnt = save(result)
     logging.info(f'saved {rowcnt} rows to table `{_table}`')
@@ -138,7 +127,7 @@ async def fetch_and_save_k_day():
 if __name__ == '__main__':
     try:
         config.set_logger()
-        asyncio.run(fetch_and_save_k_day())
+        fetch_and_save_k_day()
     except ValueError as e:
         logging.error(str(e))
     except Exception as e:

@@ -45,7 +45,7 @@ def pct_chg_sort(n: int, rm_kcb=True) -> pd.DataFrame:
     b_df = b_df[(b_df.outDate == '') & (b_df.type == '1') & (b_df.status == '1')] \
         .drop(['ipoDate', 'outDate', 'type', 'status'], axis=1)
 
-    kline_df = repo.query_history_k_by_date((start_date, start_date))
+    kline_df = repo.query_history_k_by_date(start_date, start_date)
 
     # 过滤非st, 非停牌, 成交量大于5亿, 涨幅大于4%, 保留column
     kline_df = kline_df.loc[
