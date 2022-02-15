@@ -3,6 +3,7 @@ from datetime import datetime
 import pandas as pd
 import baostock as bs
 
+import db
 import repo
 import sdk
 
@@ -25,10 +26,11 @@ def pct_chg_sort(n: int, rm_kcb=True) -> pd.DataFrame:
 
     bs.login()
 
-    start_date = ''
+    start_date: str = ''
     day = 0
     # 获取一个月的交易日备用
-    td_df = sdk.query_trade_dates_desc((dt + pd.DateOffset(months=-1)).strftime(dt_fmt), dt.strftime(dt_fmt))
+    td_df = sdk.query_trade_dates_desc(
+        (dt + pd.DateOffset(months=-1)).strftime(dt_fmt), dt.strftime(dt_fmt))
     for i, td in td_df.iterrows():
         if td['is_trading_day'] == '1':
             if day == n:
@@ -45,14 +47,18 @@ def pct_chg_sort(n: int, rm_kcb=True) -> pd.DataFrame:
     b_df = b_df[(b_df.outDate == '') & (b_df.type == '1') & (b_df.status == '1')] \
         .drop(['ipoDate', 'outDate', 'type', 'status'], axis=1)
 
-    kline_df = repo.query_history_k_by_date(start_date, start_date)
+    # kline_df = repo.query_history_k_by_date(start_date, start_date)
+    kline_df = pd.read_sql(repo.sql_kline(
+        start_date, start_date), db.db_engine)
 
     # 过滤非st, 非停牌, 成交量大于5亿, 涨幅大于4%, 保留column
     kline_df = kline_df.loc[
-        (kline_df['isST'] == 0) & (kline_df['tradestatus'] == 1) & (kline_df['amount'] > 500000000) & (kline_df['pctChg'] > 4),
+        (kline_df['isST'] == 0) & (kline_df['tradestatus'] == 1) & (
+            kline_df['amount'] > 500000000) & (kline_df['pctChg'] > 4),
         ['date', 'code', 'close', 'amount', 'pctChg']]
     if rm_kcb:  # 过滤非科创板
-        kline_df = kline_df[~kline_df['code'].str.startswith('sh.688', na=False)]
+        kline_df = kline_df[~kline_df['code'].str.startswith(
+            'sh.688', na=False)]
     df = pd.merge(kline_df, b_df, how='left', on='code')  # 合并
 
     # reorder column to [date, code, code_name, close, amount, pctChg]
@@ -60,7 +66,8 @@ def pct_chg_sort(n: int, rm_kcb=True) -> pd.DataFrame:
     cols = cols[:2] + cols[-1:] + cols[2:-1]
     df = df[cols]
 
-    df = df.sort_values(['pctChg'], ascending=False).iloc[0:80].reset_index(drop=True)  # 涨幅%排序, 选前100只股票
+    df = df.sort_values(['pctChg'], ascending=False).iloc[0:80].reset_index(
+        drop=True)  # 涨幅%排序, 选前100只股票
 
     bs.logout()
     return df

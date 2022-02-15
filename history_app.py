@@ -1,8 +1,8 @@
-import asyncio
 import logging
 import subprocess
 from datetime import datetime
 
+import db
 import view
 import config
 from retrieve import fetch_and_save_k_day
@@ -50,10 +50,11 @@ def write_break_up_codes(date: datetime):
 if __name__ == '__main__':
     try:
         config.set_logger()
-        asyncio.run(fetch_and_save_k_day())
+        fetch_and_save_k_day()
         app()
     except ValueError as e:
         logging.error(str(e))
     except Exception as e:
         raise e
-
+    finally:
+        db.db_engine.dispose()

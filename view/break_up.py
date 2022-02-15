@@ -2,6 +2,8 @@ from datetime import datetime, timedelta
 from decimal import localcontext, InvalidOperation
 
 import pandas as pd
+
+import db
 import repo
 import logging
 
@@ -17,10 +19,10 @@ class DatePoints:
 
     def __init__(self, date: datetime):
         self.date = pd.Timestamp(date)
-        self.date_30 = date - pd.DateOffset(days=30)
-        self.date_60 = date - pd.DateOffset(days=60)
-        self.date_120 = date - pd.DateOffset(days=120)
-        self.date_240 = date - pd.DateOffset(days=240)
+        self.date_30 = self.date - pd.DateOffset(days=30)
+        self.date_60 = self.date - pd.DateOffset(days=60)
+        self.date_120 = self.date - pd.DateOffset(days=120)
+        self.date_240 = self.date - pd.DateOffset(days=240)
 
 
 def is_break_up(df: pd.DataFrame, dp: DatePoints) -> bool:
@@ -51,8 +53,7 @@ def is_break_up(df: pd.DataFrame, dp: DatePoints) -> bool:
 
 
 def get_valid_codes(today: str) -> list:
-    df = repo.query_valid_codes(today)
-    return df['code'].tolist()
+    return pd.read_sql(repo.sql_codes(today), db.db_engine)['code'].tolist()
 
 
 def get_break_up_codes(today: datetime) -> list:
@@ -66,16 +67,15 @@ def get_break_up_codes(today: datetime) -> list:
     logging.info(f"break_up: get {df.shape[0]} k-lines")
 
     df.drop(columns=['id'], axis=1, inplace=True)
-    df['date'] = pd.to_datetime(df['date'], infer_datetime_format=True)
-    df.set_index('date', inplace=True)
     df = df.sort_values(by='date')
 
     dp = DatePoints(today)
 
     with localcontext() as ctx:
-        ctx.traps[InvalidOperation] = 0
+        ctx.traps[InvalidOperation] = False
 
-        g = df.groupby(by='code', sort=False).apply(lambda x: is_break_up(x, dp))
+        g = df.groupby(by='code', sort=False).apply(
+            lambda x: is_break_up(x, dp))
         g = g[g]
         logging.info(f"break_up: get {g.size} break codes")
         return g.index.tolist()
@@ -85,11 +85,13 @@ def get_day_kline_from_codes(today: datetime, codes: list) -> pd.DataFrame:
     start240 = today - timedelta(days=240)
     start_str = start240.strftime("%Y-%m-%d")
     end_str = today.strftime("%Y-%m-%d")
-    return repo.query_history_k_by_date(start_str, end_str, codes)
+    return pd.read_sql(repo.sql_kline(start_str, end_str, codes), db.db_engine, index_col=['date'],
+                       parse_dates=['date'])
 
 
 if __name__ == '__main__':
     config.set_logger()
-    now = datetime.now() - timedelta(days=1)
+    now = datetime.now() - timedelta(days=0)
     cs = get_break_up_codes(now)
     print(cs)
+    db.db_engine.dispose()

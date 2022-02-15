@@ -3,7 +3,7 @@ import logging
 mysql_config = {
     'user': 'root',
     'password': '199013fankaistar',
-    'host': '192.168.23.150',
+    'host': 'localhost',
     'database': 'stock_market',
     'use_pure': False
 }
