@@ -30,9 +30,9 @@ kline = Table(
 def sql_kline(start: str, end: str = None, codes: list = None):
     sql = select(kline).where(kline.c.date >= start)
     if end:
-        sql.where(kline.c.date <= end)
+        sql = sql.where(kline.c.date <= end)
     if codes:
-        sql.where(kline.c.code.in_(codes))
+        sql = sql.where(kline.c.code.in_(codes))
     return sql
 
 
