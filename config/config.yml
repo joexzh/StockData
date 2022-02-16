@@ -2,7 +2,7 @@ all-stock:
   lastUpdated: 2019-02-16
   nextUpdate: 0 17 * * 0-4
 k-day:
-  lastUpdated: 2022-02-15
+  lastUpdated: 2022-02-16
   nextUpdate: 0 17 * * 0-4
 profit_data:
   lastUpdated: 2019-02-16 23:12:00

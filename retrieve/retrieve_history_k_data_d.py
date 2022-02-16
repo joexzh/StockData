@@ -36,16 +36,15 @@ class Fetcher:
         return pd.concat(kds)
 
     def fetch(self) -> pd.DataFrame:
-        with sdk.bs_login_ctx():
-            logging.info(f'start to retrieve {_table}')
-            bcs = sdk.query_stock_basic()
-            bcs = bcs[(bcs.outDate == '') & (bcs.type == '1') & (bcs.status == '1')]
-            logging.info(f'total stocks: {bcs.shape[0]}')
+        logging.info(f'start to retrieve {_table}')
+        bcs = sdk.query_stock_basic()
+        bcs = bcs[(bcs.outDate == '') & (bcs.type == '1') & (bcs.status == '1')]
+        logging.info(f'total stocks: {bcs.shape[0]}')
 
-            result = self.fetch_kline_data(bcs["code"])
-            result.to_csv(r"D:\history_A_stock_k_data.csv", index=False)
-            logging.info(f'total rows: {result.shape[0]}')
-            return result
+        result = self.fetch_kline_data(bcs["code"])
+        result.to_csv(r"D:\history_A_stock_k_data.csv", index=False)
+        logging.info(f'total rows: {result.shape[0]}')
+        return result
 
 
 def save(result: pd.DataFrame):

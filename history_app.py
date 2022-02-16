@@ -6,6 +6,7 @@ import db
 import view
 import config
 from retrieve import fetch_and_save_k_day
+import sdk
 
 doc = r'C:\USERS\ADMINISTRATOR\Documents'
 
@@ -49,9 +50,10 @@ def write_break_up_codes(date: datetime):
 
 if __name__ == '__main__':
     try:
-        config.set_logger()
-        fetch_and_save_k_day()
-        app()
+        with sdk.bs_login_ctx():
+            config.set_logger()
+            fetch_and_save_k_day()
+            app()
     except ValueError as e:
         logging.error(str(e))
     except Exception as e:
