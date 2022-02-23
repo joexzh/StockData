@@ -44,8 +44,9 @@ def write_all_days(f):
 
 
 def write_break_up_codes(date: datetime):
-    codes = view.get_break_up_codes(date)
-    write(fr'{doc}\突破.txt', str(codes))
+    code_dict = view.get_filtered_code_dict(date)
+    for key in code_dict:
+        write(fr'{doc}\{key}.txt', str(code_dict[key]))
 
 
 if __name__ == '__main__':
