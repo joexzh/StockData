@@ -4,7 +4,6 @@ channels:
   - defaults
 dependencies:
   - jupyter
-  - pyyaml
   - baostock
   - mysql-connector-python
   - pandas

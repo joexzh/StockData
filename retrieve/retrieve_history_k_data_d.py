@@ -1,10 +1,11 @@
 import logging
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 
 import db
 import sdk
 import pandas as pd
 import config
+import repo
 
 _table = 'history_k_data_d'
 
@@ -12,7 +13,7 @@ _table = 'history_k_data_d'
 class Fetcher:
     def __init__(self) -> None:
         now = datetime.now()
-        start_date: date = config.get_k_day_last_updated() + timedelta(days=1)
+        start_date = repo.last_date + timedelta(days=1)
         if start_date > now.date():
             raise ValueError(f'起止日期 {start_date} 不能大于今天 {now.date()}')
         if start_date == now.date() and now.hour < 17:
@@ -52,13 +53,6 @@ def save(result: pd.DataFrame):
 
     cnt = result.to_sql(_table, db.db_engine, if_exists='append', index=False, chunksize=10000, method='multi')
     logging.info(f'inserted {cnt} rows')
-
-    if result.shape[0] > 0:
-        dts = pd.to_datetime(
-            result['date'], infer_datetime_format=False).sort_values(ascending=False)
-        d = dts.iloc[0].date()
-        config.set_k_day_last_updated(d)
-        config.save_config_yml(config.config_yml)
 
     return cnt
 

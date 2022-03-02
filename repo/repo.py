@@ -1,6 +1,10 @@
+import datetime
+
+import pandas as pd
 from sqlalchemy import Table, BIGINT, Column, Date, VARCHAR, DECIMAL, BigInteger, Float, MetaData, select
 from sqlalchemy.dialects.mysql import TINYINT
 
+import db
 
 metadata = MetaData()
 kline = Table(
@@ -36,6 +40,18 @@ def sql_kline(start: str, end: str = None, codes: list = None):
     return sql
 
 
-def sql_codes(today: str):
-    sql = select(kline.c.code).distinct().where(kline.c.date == today).where(kline.c.isST == 0)
+def sql_codes(to_date: str):
+    sql = select(kline.c.code).distinct().where(kline.c.date == to_date).where(kline.c.isST == 0)
     return sql
+
+
+def _last_date() -> datetime.date:
+    sql = "SELECT DISTINCT date FROM history_k_data_d ORDER BY date DESC LIMIT 1"
+
+    df = pd.read_sql(sql, db.db_engine, parse_dates=['date'])
+    if df.shape[0] == 0:
+        raise ValueError("history_k_data_d last date empty")
+    return df.iloc[0].date.to_pydatetime().date()
+
+
+last_date = _last_date()

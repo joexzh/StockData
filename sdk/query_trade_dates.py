@@ -22,11 +22,11 @@ def query_trade_dates(start_date=None, end_date=None) -> pandas.DataFrame:
         # 获取一条记录，将记录合并在一起
         data_list.append(rs.get_row_data())
     result = pd.DataFrame(data_list, columns=rs.fields)
+    result['calendar_date'] = pd.to_datetime(result['calendar_date'])
     return result
 
 
 def query_trade_dates_desc(start_date=None, end_date=None) -> pandas.DataFrame:
     df = query_trade_dates(start_date, end_date)
-    df['calendar_date'] = pd.to_datetime(df['calendar_date'])
     df = df.sort_values(['calendar_date'], ascending=False).reset_index(drop=True)
     return df

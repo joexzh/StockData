@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pandas as pd
 
@@ -7,36 +7,38 @@ import repo
 import sdk
 
 
-def pct_chg_sort(n: int, rm_kcb=True) -> pd.DataFrame:
+def pct_chg_sort(n: int, rm_kcb=True) -> list[pd.DataFrame]:
     """
-    n天前涨幅排名
+    n天涨幅排名
 
     :param n:
     :param rm_kcb: 是否去除科创板
     :return: date, code, code_name, close, amount, pctChg
     """
-
+    if n <= 0:
+        raise ValueError("n should > 0")
     pd.set_option('display.max_rows', 1000)
     dt_fmt = '%Y-%m-%d'
 
-    dt = datetime.now()
+    dt = repo.last_date
     # if dt.hour < 17 and n == 0:  # 当天未出数据
     #     raise ValueError(f'当天未出数据: {dt.strftime(dt_fmt)}')
 
-    start_date: str = ''
-    day = 0
-    # 获取一个月的交易日备用
+    # 获取60天的交易日备用
     td_df = sdk.query_trade_dates_desc(
-        (dt + pd.DateOffset(months=-1)).strftime(dt_fmt), dt.strftime(dt_fmt))
-    for i, td in td_df.iterrows():
-        if td['is_trading_day'] == '1':
-            if day == n:
-                start_date = td['calendar_date']
-                break
-            day += 1
+        (dt + timedelta(days=-60)).strftime(dt_fmt), dt.strftime(dt_fmt))
 
-    if not start_date:
-        raise ValueError(f'当天未出数据: {dt.strftime(dt_fmt)}')
+    days: list[datetime.date] = []
+    for i, row in td_df.iterrows():
+        if len(days) >= n:
+            break
+        if row['is_trading_day'] == '1':
+            row_date = row['calendar_date'].to_pydatetime().date()
+            if row_date <= dt:
+                days.append(row_date)
+
+    if len(days) == 0 and days[0] != dt:
+        raise ValueError(f'交易日与最新日期不匹配: 日期: {dt.strftime(dt_fmt)}\n交易日: {days}')
 
     b_df = sdk.query_stock_basic()
 
@@ -44,25 +46,29 @@ def pct_chg_sort(n: int, rm_kcb=True) -> pd.DataFrame:
     b_df = b_df[(b_df.outDate == '') & (b_df.type == '1') & (b_df.status == '1')] \
         .drop(['ipoDate', 'outDate', 'type', 'status'], axis=1)
 
-    # kline_df = repo.query_history_k_by_date(start_date, start_date)
-    kline_df = pd.read_sql(repo.sql_kline(
-        start_date, start_date), db.db_engine)
+    dfs = []
 
-    # 过滤非st, 非停牌, 成交量大于5亿, 涨幅大于4%, 保留column
-    kline_df = kline_df.loc[
-        (kline_df['isST'] == 0) & (kline_df['tradestatus'] == 1) & (
-                kline_df['amount'] > 500000000) & (kline_df['pctChg'] > 4),
-        ['date', 'code', 'close', 'amount', 'pctChg']]
-    if rm_kcb:  # 过滤非科创板
-        kline_df = kline_df[~kline_df['code'].str.startswith(
-            'sh.688', na=False)]
-    df = pd.merge(kline_df, b_df, how='left', on='code')  # 合并
+    for day in days:
+        kline_df = pd.read_sql(repo.sql_kline(
+            day.strftime(dt_fmt), day.strftime(dt_fmt)), db.db_engine)
 
-    # reorder column to [date, code, code_name, close, amount, pctChg]
-    cols = df.columns.tolist()
-    cols = cols[:2] + cols[-1:] + cols[2:-1]
-    df = df[cols]
+        # 过滤非st, 非停牌, 成交量大于5亿, 涨幅大于4%, 保留column
+        kline_df = kline_df.loc[
+            (kline_df['isST'] == 0) & (kline_df['tradestatus'] == 1) & (
+                    kline_df['amount'] > 500000000) & (kline_df['pctChg'] > 4),
+            ['date', 'code', 'close', 'amount', 'pctChg']]
+        if rm_kcb:  # 过滤非科创板
+            kline_df = kline_df[~kline_df['code'].str.startswith(
+                'sh.688', na=False)]
+        df = pd.merge(kline_df, b_df, how='left', on='code')  # 合并
 
-    df = df.sort_values(['pctChg'], ascending=False).iloc[0:80].reset_index(
-        drop=True)  # 涨幅%排序, 选前100只股票
-    return df
+        # reorder column to [date, code, code_name, close, amount, pctChg]
+        cols = df.columns.tolist()
+        cols = cols[:2] + cols[-1:] + cols[2:-1]
+        df = df[cols]
+
+        df = df.sort_values(['pctChg'], ascending=False).iloc[0:80].reset_index(
+            drop=True)  # 涨幅%排序, 选前80只股票
+        dfs.append(df)
+
+    return dfs

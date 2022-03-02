@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta, date
 from decimal import localcontext, InvalidOperation
 from typing import Callable
 
@@ -12,36 +12,37 @@ from config import config
 
 
 class DatePoints:
-    date: pd.Timestamp
-    date_10: pd.Timestamp
-    date_30: pd.Timestamp
-    date_60: pd.Timestamp
-    date_120: pd.Timestamp
-    date_180: pd.Timestamp
-    date_240: pd.Timestamp
+    ts: pd.Timestamp
+    ts_10: pd.Timestamp
+    ts_30: pd.Timestamp
+    ts_60: pd.Timestamp
+    ts_120: pd.Timestamp
+    ts_180: pd.Timestamp
+    ts_240: pd.Timestamp
 
-    def __init__(self, date: datetime):
-        self.date = pd.Timestamp(date)
-        self.date_10 = self.date - pd.DateOffset(days=10)
-        self.date_30 = self.date - pd.DateOffset(days=30)
-        self.date_60 = self.date - pd.DateOffset(days=60)
-        self.date_120 = self.date - pd.DateOffset(days=120)
-        self.date_180 = self.date - pd.DateOffset(days=180)
-        self.date_240 = self.date - pd.DateOffset(days=240)
-
-
-def get_valid_codes(today: str) -> list:
-    return pd.read_sql(repo.sql_codes(today), db.db_engine)['code'].tolist()
+    def __init__(self, to_date: date):
+        self.ts = pd.Timestamp(to_date)
+        self.ts_10 = self.ts - pd.DateOffset(days=10)
+        self.ts_30 = self.ts - pd.DateOffset(days=30)
+        self.ts_60 = self.ts - pd.DateOffset(days=60)
+        self.ts_120 = self.ts - pd.DateOffset(days=120)
+        self.ts_180 = self.ts - pd.DateOffset(days=180)
+        self.ts_240 = self.ts - pd.DateOffset(days=240)
 
 
-def get_filtered_code_dict(today: datetime) -> dict:
+def get_valid_codes(to_date: str) -> list:
+    return pd.read_sql(repo.sql_codes(to_date), db.db_engine)['code'].tolist()
+
+
+def get_filtered_code_dict() -> dict[str, list[str]]:
+    to_date = repo.last_date
     logging.info("选股: start to get break up codes...")
 
-    date_str = today.strftime("%Y-%m-%d")
+    date_str = to_date.strftime("%Y-%m-%d")
     codes = get_valid_codes(date_str)
     logging.info(f"选股: get {len(codes)} valid codes.")
 
-    df = get_day_kline_from_codes(today, codes)
+    df = get_day_kline_from_codes(to_date, codes)
     logging.info(f"选股: get {df.shape[0]} k-lines")
 
     df.drop(columns=['id'], axis=1, inplace=True)
@@ -52,7 +53,7 @@ def get_filtered_code_dict(today: datetime) -> dict:
     # 振幅: abs(open - close)
     df['long'] = (df['open'] - df['close']).abs()
 
-    dp = DatePoints(today)
+    dp = DatePoints(to_date)
     g = df.groupby(by='code', sort=False)
 
     fn_tuples = [("突破", is_break_up)]
@@ -88,30 +89,27 @@ def is_break_up(df: pd.DataFrame, dp: DatePoints) -> bool:
         return False
 
     close = last_row.close
-    last_day = dp.date - pd.DateOffset(days=1)
-    df_180 = df.loc[dp.date_180:last_day]
+    last_day = dp.ts - pd.DateOffset(days=1)
+    df_180 = df.loc[dp.ts_180:last_day]
     max180 = df_180.close.max()
     min180 = df_180.close.min()
     valid_close = max180 < close < min180 * 1.5
 
-    valid_value = last_row['liquid'] > 4000000000
+    valid_liquid = last_row['liquid'] > 4000000000
 
-    valid_long = last_row['long'] > df.loc[dp.date_60:last_day].long.mean()
-
-    return valid_close and valid_value and valid_long
+    return valid_close and valid_liquid
 
 
-def get_day_kline_from_codes(today: datetime, codes: list) -> pd.DataFrame:
-    start240 = today - timedelta(days=240)
+def get_day_kline_from_codes(to_date: date, codes: list) -> pd.DataFrame:
+    start240 = to_date - timedelta(days=240)
     start_str = start240.strftime("%Y-%m-%d")
-    end_str = today.strftime("%Y-%m-%d")
+    end_str = to_date.strftime("%Y-%m-%d")
     return pd.read_sql(repo.sql_kline(start_str, end_str, codes), db.db_engine, index_col=['date'],
                        parse_dates=['date'])
 
 
 if __name__ == '__main__':
     config.set_logger()
-    now = datetime.now() - timedelta(days=1)
-    code_dict = get_filtered_code_dict(now)
+    code_dict = get_filtered_code_dict()
     print(code_dict)
     db.db_engine.dispose()

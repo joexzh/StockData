@@ -1,29 +1,23 @@
 import logging
 import subprocess
-from datetime import datetime
 
 import db
 import view
 import config
-from retrieve import fetch_and_save_k_day
 import sdk
+from retrieve import fetch_and_save_k_day
 
 doc = r'C:\USERS\ADMINISTRATOR\Documents'
 
 
-def app():
-    write_all_days(write_one_day)
+def change_sort_ndays(n: int):
+    dfs = view.pct_chg_sort(n)
+    path_gen = gen_path_ndays(len(dfs))
+    for df in dfs:
+        write(next(path_gen), str(df['code'].tolist()))
 
-    date = datetime.now()
-    write_break_up_codes(date)
-
-    p = next(gen_day_n_path())
-    subprocess.call(fr'explorer /select, {p[1]}')
-
-
-def write_one_day(n, path):
-    df = view.pct_chg_sort(n)
-    write(path, str(df['code'].tolist()))
+    p = next(gen_path_ndays(1))
+    subprocess.call(fr'explorer /select, {p}')
 
 
 def write(path, s):
@@ -31,20 +25,16 @@ def write(path, s):
         f.write(s)
 
 
-def gen_day_n_path():
-    yield 0, fr'{doc}\当天涨幅排序.txt'
-    yield 1, fr'{doc}\1天前涨幅排序.txt'
-    yield 2, fr'{doc}\2天前涨幅排序.txt'
-    yield 3, fr'{doc}\3天前涨幅排序.txt'
+def gen_path_ndays(n: int):
+    for i in range(n):
+        if i == 0:
+            yield fr'{doc}\当天涨幅排序.txt'
+        else:
+            yield fr'{doc}\{i}天前涨幅排序.txt'
 
 
-def write_all_days(f):
-    for i, path in gen_day_n_path():
-        f(i, path)
-
-
-def write_break_up_codes(date: datetime):
-    code_dict = view.get_filtered_code_dict(date)
+def filter_codes():
+    code_dict = view.get_filtered_code_dict()
     for key in code_dict:
         write(fr'{doc}\{key}.txt', str(code_dict[key]))
 
@@ -54,7 +44,8 @@ if __name__ == '__main__':
         with sdk.bs_login_ctx():
             config.set_logger()
             fetch_and_save_k_day()
-            app()
+            change_sort_ndays(4)
+            filter_codes()
     except ValueError as e:
         logging.error(str(e))
     except Exception as e:
