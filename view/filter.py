@@ -1,8 +1,8 @@
 from datetime import timedelta, date
 from decimal import localcontext, InvalidOperation
-from typing import Callable
 
 import pandas as pd
+from pandas.core.groupby import DataFrameGroupBy
 
 import db
 import repo
@@ -11,7 +11,7 @@ import logging
 from config import config
 
 
-class DatePoints:
+class TimestampPoints:
     ts: pd.Timestamp
     ts_10: pd.Timestamp
     ts_30: pd.Timestamp
@@ -20,8 +20,8 @@ class DatePoints:
     ts_180: pd.Timestamp
     ts_240: pd.Timestamp
 
-    def __init__(self, to_date: date):
-        self.ts = pd.Timestamp(to_date)
+    def __init__(self, to_ts: pd.Timestamp):
+        self.ts = to_ts
         self.ts_10 = self.ts - pd.DateOffset(days=10)
         self.ts_30 = self.ts - pd.DateOffset(days=30)
         self.ts_60 = self.ts - pd.DateOffset(days=60)
@@ -34,7 +34,12 @@ def get_valid_codes(to_date: str) -> list:
     return pd.read_sql(repo.sql_codes(to_date), db.db_engine)['code'].tolist()
 
 
-def get_filtered_code_dict() -> dict[str, list[str]]:
+def get_filtered_code_dict(ndays=0) -> dict[str, list[str]]:
+    """
+    选股
+    :param ndays: 0代表最新一天, 1代表加上前一天, 以此类推
+    :return: 格式: {'突破0': ['sh.600000']}
+    """
     to_date = repo.last_date
     logging.info("选股: start to get break up codes...")
 
@@ -42,7 +47,7 @@ def get_filtered_code_dict() -> dict[str, list[str]]:
     codes = get_valid_codes(date_str)
     logging.info(f"选股: get {len(codes)} valid codes.")
 
-    df = get_day_kline_from_codes(to_date, codes)
+    df = get_day_kline_from_codes(to_date, codes, ndays)
     logging.info(f"选股: get {df.shape[0]} k-lines")
 
     df.drop(columns=['id'], axis=1, inplace=True)
@@ -53,33 +58,42 @@ def get_filtered_code_dict() -> dict[str, list[str]]:
     # 振幅: abs(open - close)
     df['long'] = (df['open'] - df['close']).abs()
 
-    dp = DatePoints(to_date)
+    # 前n个交易日, reversed
+    trade_ts_list: list[pd.Timestamp] = sorted(set(df.index), reverse=True)[:ndays + 1]
+    tsp_list = [TimestampPoints(trade_ts) for trade_ts in trade_ts_list]
+
     g = df.groupby(by='code', sort=False)
 
-    fn_tuples = [("突破", is_break_up)]
-    return create_code_dict(g, dp, fn_tuples)
+    filter_dict = {}
 
-
-def create_code_dict(g, dp: DatePoints, fn_tuples: list[tuple[str, Callable]]) -> dict:
     with localcontext() as ctx:
         ctx.traps[InvalidOperation] = False
-        return dict([get_filter_codes(g, dp, fn_tuple) for fn_tuple in fn_tuples])
+
+        filter_dict.update(filter_breaks(g, trade_ts_list, tsp_list))
+
+    return filter_dict
 
 
-def get_filter_codes(g, dp: DatePoints, fn_tuple: tuple[str, Callable]) -> tuple[str, list[str]]:
-    df = g.apply(lambda x: fn_tuple[1](x, dp))
+def filter_breaks(g: DataFrameGroupBy, trade_ts_list: list[pd.Timestamp], tsp_list: list[TimestampPoints]) \
+        -> list[dict[str, list[str]]]:
+    return {f"突破{i}": filter_break(g, trade_ts_list[i], tsp_list[i]) for i in range(len(tsp_list))}
+
+
+def filter_break(g: DataFrameGroupBy, trade_ts: pd.Timestamp, tsp: TimestampPoints):
+    df = g.apply(lambda x: is_break_up(x, trade_ts, tsp))
     df = df[df]
-    logging.info(f"选股: get {df.size} {fn_tuple[0]} codes")
-    return fn_tuple[0], df.index.tolist()
+    return df.index.tolist()
 
 
-def is_break_up(df: pd.DataFrame, dp: DatePoints) -> bool:
+def is_break_up(df: pd.DataFrame, trade_ts: pd.Timestamp, tsp: TimestampPoints) -> bool:
     """
     股票是否突破60天最高价
     :param df:
-    :param dp:
+    :param trade_ts:
+    :param tsp:
     :return:
     """
+    df = df.loc[:trade_ts]
     if df.shape[0] < 60:
         return False
 
@@ -89,8 +103,8 @@ def is_break_up(df: pd.DataFrame, dp: DatePoints) -> bool:
         return False
 
     close = last_row.close
-    last_day = dp.ts - pd.DateOffset(days=1)
-    df_180 = df.loc[dp.ts_180:last_day]
+    last_day = tsp.ts - pd.DateOffset(days=1)
+    df_180 = df.loc[tsp.ts_180:last_day]
     max180 = df_180.close.max()
     min180 = df_180.close.min()
     valid_close = max180 < close < min180 * 1.5
@@ -100,8 +114,9 @@ def is_break_up(df: pd.DataFrame, dp: DatePoints) -> bool:
     return valid_close and valid_liquid
 
 
-def get_day_kline_from_codes(to_date: date, codes: list) -> pd.DataFrame:
-    start240 = to_date - timedelta(days=240)
+def get_day_kline_from_codes(to_date: date, codes: list, ndays=0) -> pd.DataFrame:
+    days = 240 + ndays
+    start240 = to_date - timedelta(days)
     start_str = start240.strftime("%Y-%m-%d")
     end_str = to_date.strftime("%Y-%m-%d")
     return pd.read_sql(repo.sql_kline(start_str, end_str, codes), db.db_engine, index_col=['date'],
@@ -110,6 +125,6 @@ def get_day_kline_from_codes(to_date: date, codes: list) -> pd.DataFrame:
 
 if __name__ == '__main__':
     config.set_logger()
-    code_dict = get_filtered_code_dict()
+    code_dict = get_filtered_code_dict(3)
     print(code_dict)
     db.db_engine.dispose()

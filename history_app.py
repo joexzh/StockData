@@ -34,7 +34,7 @@ def gen_path_ndays(n: int):
 
 
 def filter_codes():
-    code_dict = view.get_filtered_code_dict()
+    code_dict = view.get_filtered_code_dict(3)
     for key in code_dict:
         write(fr'{doc}\{key}.txt', str(code_dict[key]))
 
