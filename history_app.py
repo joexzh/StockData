@@ -36,6 +36,7 @@ def gen_path_ndays(n: int):
 def filter_codes():
     code_dict = view.get_filtered_code_dict(3)
     for key in code_dict:
+        logging.info(f"选股: {key} - {len(code_dict[key])}")
         write(fr'{doc}\{key}.txt', str(code_dict[key]))
 
 
