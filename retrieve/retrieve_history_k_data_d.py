@@ -13,7 +13,7 @@ _table = 'history_k_data_d'
 class Fetcher:
     def __init__(self) -> None:
         now = datetime.now()
-        start_date = repo.last_date + timedelta(days=1)
+        start_date = repo.last_date() + timedelta(days=1)
         if start_date > now.date():
             raise ValueError(f'起止日期 {start_date} 不能大于今天 {now.date()}')
         if start_date == now.date() and now.hour < 17:

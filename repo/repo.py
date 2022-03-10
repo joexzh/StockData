@@ -45,13 +45,12 @@ def sql_codes(to_date: str):
     return sql
 
 
-def _last_date() -> datetime.date:
-    sql = "SELECT DISTINCT date FROM history_k_data_d ORDER BY date DESC LIMIT 1"
+sql = "SELECT DISTINCT date FROM history_k_data_d ORDER BY date DESC LIMIT 1"
 
+
+def last_date() -> datetime.date:
     df = pd.read_sql(sql, db.db_engine, parse_dates=['date'])
     if df.shape[0] == 0:
         raise ValueError("history_k_data_d last date empty")
     return df.iloc[0].date.to_pydatetime().date()
 
-
-last_date = _last_date()

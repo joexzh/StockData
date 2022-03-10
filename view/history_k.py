@@ -20,7 +20,7 @@ def pct_chg_sort(n: int, rm_kcb=True) -> list[pd.DataFrame]:
     pd.set_option('display.max_rows', 1000)
     dt_fmt = '%Y-%m-%d'
 
-    dt = repo.last_date
+    dt = repo.last_date()
     # if dt.hour < 17 and n == 0:  # 当天未出数据
     #     raise ValueError(f'当天未出数据: {dt.strftime(dt_fmt)}')
 

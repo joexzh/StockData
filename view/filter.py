@@ -40,7 +40,7 @@ def get_filtered_code_dict(ndays=0) -> dict[str, list[str]]:
     :param ndays: 0代表最新一天, 1代表加上前一天, 以此类推
     :return: 格式: {'突破0': ['sh.600000']}
     """
-    to_date = repo.last_date
+    to_date = repo.last_date()
     logging.info("选股: start to get break up codes...")
 
     date_str = to_date.strftime("%Y-%m-%d")
