@@ -1,4 +1,5 @@
 import datetime
+from typing import Optional
 
 import pandas as pd
 from sqlalchemy import Table, BIGINT, Column, Date, VARCHAR, DECIMAL, BigInteger, Float, MetaData, select
@@ -31,7 +32,7 @@ kline = Table(
 )
 
 
-def sql_kline(start: str, end: str = None, codes: list = None):
+def sql_kline(start: str, end: Optional[str] = None, codes: Optional[list] = None):
     sql = select(kline).where(kline.c.date >= start)
     if end:
         sql = sql.where(kline.c.date <= end)
@@ -45,12 +46,11 @@ def sql_codes(to_date: str):
     return sql
 
 
-sql = "SELECT DISTINCT date FROM history_k_data_d ORDER BY date DESC LIMIT 1"
+last_date_sql = "SELECT DISTINCT date FROM history_k_data_d ORDER BY date DESC LIMIT 1"
 
 
 def last_date() -> datetime.date:
-    df = pd.read_sql(sql, db.db_engine, parse_dates=['date'])
+    df = pd.read_sql(last_date_sql, db.db_engine, parse_dates=['date'])
     if df.shape[0] == 0:
         raise ValueError("history_k_data_d last date empty")
     return df.iloc[0].date.to_pydatetime().date()
-
