@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta, date
 
 import pandas as pd
 
@@ -28,7 +28,7 @@ def pct_chg_sort(n: int, rm_kcb=True) -> list[pd.DataFrame]:
     td_df = sdk.query_trade_dates_desc(
         (dt + timedelta(days=-60)).strftime(dt_fmt), dt.strftime(dt_fmt))
 
-    days: list[datetime.date] = []
+    days: list[date] = []
     for i, row in td_df.iterrows():
         if len(days) >= n:
             break

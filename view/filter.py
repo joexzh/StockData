@@ -37,6 +37,7 @@ def get_valid_codes(to_date: str) -> list:
 def get_filtered_code_dict(ndays=0) -> dict[str, list[str]]:
     """
     选股
+
     :param ndays: 0代表最新一天, 1代表加上前一天, 以此类推
     :return: 格式: {'突破0': ['sh.600000']}
     """
@@ -75,7 +76,7 @@ def get_filtered_code_dict(ndays=0) -> dict[str, list[str]]:
 
 
 def filter_breaks(g: DataFrameGroupBy, trade_ts_list: list[pd.Timestamp], tsp_list: list[TimestampPoints]) \
-        -> list[dict[str, list[str]]]:
+        -> dict[str, list[str]]:
     return {f"突破{i}": filter_break(g, trade_ts_list[i], tsp_list[i]) for i in range(len(tsp_list))}
 
 
