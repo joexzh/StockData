@@ -1,6 +1,8 @@
 import baostock as bs
 import pandas as pd
 
+from sdk.validation import validate_rs
+
 
 def query_balance_data(code, year, quarter) -> pd.DataFrame:
     """
@@ -16,6 +18,8 @@ def query_balance_data(code, year, quarter) -> pd.DataFrame:
 
     balance_list = []
     rs_balance = bs.query_balance_data(code, year, quarter)
+    validate_rs(rs_balance, 'query_balance_data')
+
     while (rs_balance.error_code == '0') & rs_balance.next():
         balance_list.append(rs_balance.get_row_data())
     result_balance = pd.DataFrame(balance_list, columns=rs_balance.fields)

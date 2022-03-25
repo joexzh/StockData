@@ -1,9 +1,10 @@
 import baostock as bs
-import pandas
 import pandas as pd
 
+from sdk.validation import validate_rs
 
-def query_trade_dates(start_date=None, end_date=None) -> pandas.DataFrame:
+
+def query_trade_dates(start_date=None, end_date=None) -> pd.DataFrame:
     """
     交易日查询
     http://baostock.com/baostock/index.php/Python_API%E6%96%87%E6%A1%A3#.E4.BA.A4.E6.98.93.E6.97.A5.E6.9F.A5.E8.AF.A2.EF.BC.9Aquery_trade_dates.28.29
@@ -14,8 +15,7 @@ def query_trade_dates(start_date=None, end_date=None) -> pandas.DataFrame:
     """
 
     rs = bs.query_trade_dates(start_date, end_date)
-    print('query_trade_dates respond error_code:' + rs.error_code)
-    print('query_trade_dates respond error_msg:' + rs.error_msg)
+    validate_rs(rs, 'query_trade_dates')
 
     data_list = []
     while (rs.error_code == '0') & rs.next():
@@ -26,7 +26,7 @@ def query_trade_dates(start_date=None, end_date=None) -> pandas.DataFrame:
     return result
 
 
-def query_trade_dates_desc(start_date=None, end_date=None) -> pandas.DataFrame:
+def query_trade_dates_desc(start_date=None, end_date=None) -> pd.DataFrame:
     df = query_trade_dates(start_date, end_date)
     df = df.sort_values(['calendar_date'], ascending=False).reset_index(drop=True)
     return df

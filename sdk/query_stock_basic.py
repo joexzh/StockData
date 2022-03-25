@@ -1,6 +1,8 @@
 import baostock as bs
 import pandas as pd
 
+from sdk.validation import validate_rs
+
 
 def query_stock_basic(code="", code_name="") -> pd.DataFrame:
     """
@@ -14,8 +16,7 @@ def query_stock_basic(code="", code_name="") -> pd.DataFrame:
     """
     rs = bs.query_stock_basic(code, code_name)
     # rs = bs.query_stock_basic(code_name="浦发银行")  # 支持模糊查询
-    print('query_stock_basic respond error_code:' + rs.error_code)
-    print('query_stock_basic respond error_msg:' + rs.error_msg)
+    validate_rs(rs, 'query_stock_basic')
 
     # 打印结果集
     data_list = []

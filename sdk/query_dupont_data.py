@@ -1,6 +1,8 @@
 import baostock as bs
 import pandas as pd
 
+from sdk.validation import validate_rs
+
 
 def query_dupont_data(code, year, quarter) -> pd.DataFrame:
     """
@@ -16,6 +18,8 @@ def query_dupont_data(code, year, quarter) -> pd.DataFrame:
 
     dupont_list = []
     rs_dupont = bs.query_dupont_data(code, year, quarter)
+    validate_rs(rs_dupont, 'query_dupont_data')
+
     while (rs_dupont.error_code == '0') & rs_dupont.next():
         dupont_list.append(rs_dupont.get_row_data())
     result_profit = pd.DataFrame(dupont_list, columns=rs_dupont.fields)

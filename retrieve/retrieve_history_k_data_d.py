@@ -57,6 +57,7 @@ def fetch_and_save_k_day():
     try:
         valid, date_str = prepare_start_date()
         if not valid:
+            logging.info(f'{__name__}: skip')
             return
         result = fetch(date_str)
         logging.info(f'{__name__}: start to save to table `{_table}`, total rows: {result.shape[0]}')

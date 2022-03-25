@@ -1,6 +1,8 @@
 import baostock as bs
 import pandas as pd
 
+from sdk.validation import validate_rs
+
 
 def query_cash_flow_data(code, year, quarter) -> pd.DataFrame:
     """
@@ -16,6 +18,8 @@ def query_cash_flow_data(code, year, quarter) -> pd.DataFrame:
 
     cash_flow_list = []
     rs_cash_flow = bs.query_cash_flow_data(code, year, quarter)
+    validate_rs(rs_cash_flow, 'query_cash_flow_data')
+
     while (rs_cash_flow.error_code == '0') & rs_cash_flow.next():
         cash_flow_list.append(rs_cash_flow.get_row_data())
     result_cash_flow = pd.DataFrame(cash_flow_list, columns=rs_cash_flow.fields)

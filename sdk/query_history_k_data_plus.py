@@ -1,6 +1,8 @@
 import baostock as bs
 import pandas as pd
 
+from sdk.validation import validate_rs
+
 
 def query_history_k_data_plus(code: str, fields: str, start_date: str = None, end_date: str = None,
                               frequency: str = 'd',
@@ -13,10 +15,7 @@ def query_history_k_data_plus(code: str, fields: str, start_date: str = None, en
     :return: pandas的DataFrame类型。
     """
     rs = bs.query_history_k_data_plus(code, fields, start_date, end_date, frequency, adjustflag)
-    # print('query_history_k_data_plus respond error_code:' + rs.error_code)
-    # print('query_history_k_data_plus respond error_msg:' + rs.error_msg)
-    if rs.error_code != '0':
-        raise ValueError(f'retrieve {code} error: {rs.error_msg}')
+    validate_rs(rs, 'query_history_k_data_plus')
 
     data_list = []
     while (rs.error_code == '0') & rs.next():

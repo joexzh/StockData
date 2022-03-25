@@ -1,6 +1,8 @@
 import baostock as bs
 import pandas as pd
 
+from sdk.validation import validate_rs
+
 
 def query_forecast_report(code, start_date, end_date) -> pd.DataFrame:
     """
@@ -15,8 +17,8 @@ def query_forecast_report(code, start_date, end_date) -> pd.DataFrame:
     """
 
     rs_forecast = bs.query_forecast_report(code, start_date, end_date)
-    print('query_forecast_report respond error_code:' + rs_forecast.error_code)
-    print('query_forecast_report respond error_msg:' + rs_forecast.error_msg)
+    validate_rs(rs_forecast, 'query_forecast_report')
+
     rs_forecast_list = []
     while (rs_forecast.error_code == '0') & rs_forecast.next():
         # 分页查询，将每页信息合并在一起

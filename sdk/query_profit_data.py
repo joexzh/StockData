@@ -1,6 +1,8 @@
 import baostock as bs
 import pandas as pd
 
+from sdk.validation import validate_rs
+
 
 def query_profit_data(code: str, year: int, quarter: int) -> pd.DataFrame:
     """
@@ -17,6 +19,8 @@ def query_profit_data(code: str, year: int, quarter: int) -> pd.DataFrame:
     # 查询季频估值指标盈利能力
     profit_list = []
     rs_profit = bs.query_profit_data(code, year, quarter)
+    validate_rs(rs_profit, 'query_profit_data')
+
     while (rs_profit.error_code == '0') & rs_profit.next():
         profit_list.append(rs_profit.get_row_data())
     result_profit = pd.DataFrame(profit_list, columns=rs_profit.fields)

@@ -1,6 +1,8 @@
 import baostock as bs
 import pandas as pd
 
+from sdk.validation import validate_rs
+
 
 def query_stock_industry() -> pd.DataFrame:
     """
@@ -11,8 +13,7 @@ def query_stock_industry() -> pd.DataFrame:
     """
 
     rs = bs.query_stock_industry()
-    print('query_stock_industry error_code:'+rs.error_code)
-    print('query_stock_industry respond error_msg:'+rs.error_msg)
+    validate_rs(rs, 'query_stock_industry')
 
     # 打印结果集
     industry_list = []
@@ -21,6 +22,3 @@ def query_stock_industry() -> pd.DataFrame:
         industry_list.append(rs.get_row_data())
     result = pd.DataFrame(industry_list, columns=rs.fields)
     return result
-
-
-

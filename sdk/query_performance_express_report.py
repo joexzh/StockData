@@ -1,6 +1,8 @@
 import baostock as bs
 import pandas as pd
 
+from sdk.validation import validate_rs
+
 
 def query_performance_express_report(code, start_date, end_date) -> pd.DataFrame:
     """
@@ -15,8 +17,7 @@ def query_performance_express_report(code, start_date, end_date) -> pd.DataFrame
     """
 
     rs = bs.query_performance_express_report(code, start_date, end_date)
-    print('query_performance_express_report respond error_code:' + rs.error_code)
-    print('query_performance_express_report respond error_msg:' + rs.error_msg)
+    validate_rs(rs, 'query_performance_express_report')
 
     result_list = []
     while (rs.error_code == '0') & rs.next():

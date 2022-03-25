@@ -1,6 +1,8 @@
 import baostock as bs
 import pandas as pd
 
+from sdk.validation import validate_rs
+
 
 def query_growth_data(code, year, quarter) -> pd.DataFrame:
     """
@@ -16,9 +18,9 @@ def query_growth_data(code, year, quarter) -> pd.DataFrame:
 
     growth_list = []
     rs_growth = bs.query_growth_data(code, year, quarter)
+    validate_rs(rs_growth, 'query_growth_data')
+
     while (rs_growth.error_code == '0') & rs_growth.next():
         growth_list.append(rs_growth.get_row_data())
     result_growth = pd.DataFrame(growth_list, columns=rs_growth.fields)
     return result_growth
-
-

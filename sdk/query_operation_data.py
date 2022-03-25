@@ -1,6 +1,8 @@
 import baostock as bs
 import pandas as pd
 
+from sdk.validation import validate_rs
+
 
 def query_operation_data(code, year, quarter) -> pd.DataFrame:
     """
@@ -16,6 +18,8 @@ def query_operation_data(code, year, quarter) -> pd.DataFrame:
 
     operation_list = []
     rs_operation = bs.query_operation_data(code, year, quarter)
+    validate_rs(rs_operation, 'query_operation_data')
+
     while (rs_operation.error_code == '0') & rs_operation.next():
         operation_list.append(rs_operation.get_row_data())
     result_operation = pd.DataFrame(operation_list, columns=rs_operation.fields)
